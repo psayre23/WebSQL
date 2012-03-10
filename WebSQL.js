@@ -107,9 +107,13 @@
 	context[pub.name] = pub;
 
 
+})(this);
+
+(function (pub) {
+
 
 	// Determine if argument is an array
-	pub.isArray = function (arg) {
+	pub.isArray = Array.isArray || function (arg) {
 		return !!(arg && arg.constructor === Array);
 	};
 
@@ -135,7 +139,6 @@
 					promise.done = returnPromise(ret.done);
 					promise.fail = returnPromise(ret.fail);
 					promise.then = returnPromise(ret.then);
-					promise.with = returnPromise(ret.with);
 					promise.state = ret.state;
 
 					return promise;
@@ -191,13 +194,6 @@
 				// Wrapper for the done/fail functions
 				then: function (succ, err) {
 					return ret.done(succ).fail(err);
-				},
-
-
-				// Complete a deferred with another promise
-				with: function (promise) {
-					promise.done(ret.resolve, ret.reject);
-					return ret;
 				}
 			};
 
@@ -272,5 +268,4 @@
 	};
 
 
-})(this);
-
+})(WebSQL);

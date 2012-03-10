@@ -104,6 +104,18 @@ What will happen is the query function will pull the content of the query from t
 to the last "*/". The "!" in the comment is intended to be a marker for minifiers that the comment is to remain intact.
 If this is a problem, you may need to just fall back to standard strings.
 
+Browser Support
+---------------
+
+If WebSQL API is supported, so is WebSQL Library. But since this is a deprecated API, future browsers may pull support.
+* Safari 3.1+
+* Chrome 4.0+
+* Opera 10.5 +
+* iOS Safari 3.2+
+* Opera Mobile 11.0+
+* Android 2.1+ (unless pulled by handset maker D: )
+
+
 Why Support a Deprecated API?
 -----------------------------
 
