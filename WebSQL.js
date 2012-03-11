@@ -1,3 +1,4 @@
+/*! WebSQL (v0.1) Paul Sayre */
 (function (context) {
 
 
@@ -16,7 +17,7 @@
 
 				// Query deferred
 				var df = pub.Deferred(),
-					queries = pub.isArray(sqls) ? sqls : arguments;
+					queries = isArray(sqls) ? sqls : arguments;
 
 				// Create transaction for all queries
 				ret.rawTx(function (tx) {
@@ -38,11 +39,11 @@
 						}
 
 						// If query has args
-						if(pub.isArray(args)) {
+						if(isArray(args)) {
 							i += 1;
 
 							// If args is actually array of args
-							if(pub.isArray(args[0])) {
+							if(isArray(args[0])) {
 								for(j = 0, jLen = args.length; j < jLen; j++) {
 									if(i + 1 === iLen && j + 1 === jLen) {
 										succ = dfSql.resolve;
@@ -65,10 +66,11 @@
 							if(i + 1 === iLen) {
 								succ = dfSql.resolve;
 							}
-							tx.executeSql(sql, args, succ, error);
+							tx.executeSql(sql, [], succ, error);
 						}
 					}
 
+					// Resolve the last set of results
 					dfSql.fail(df.reject).done(function (tx, res) {
 						var ret = null, i, rows;
 						if(res) {
@@ -79,8 +81,15 @@
 									ret[i] = rows.item(i);
 								}
 							}
-							else if(res.insertId) {
-								ret = res.insertId;
+							if(ret && ret.length === 0) {
+								try {
+									ret.insertId = res.insertId;
+								} catch(e) {
+									ret.insertId = null;
+								}
+							}
+							else {
+								ret.insertId = null;
 							}
 						}
 						df.resolve(ret);
@@ -107,32 +116,33 @@
 	context[pub.name] = pub;
 
 
-})(this);
-
-(function (pub) {
-
-
-	// Determine if argument is an array
-	pub.isArray = Array.isArray || function (arg) {
+	// Test if an argument is an array
+	var isArray = Array.isArray || function (arg) {
 		return !!(arg && arg.constructor === Array);
 	};
 
+
+})(window);
+
+(function (pub) {
 
 
 
 	// Deferred results object
 	pub.Deferred = function () {
 		var curState,
-			doneCB = pub.Callbacks(),
-			failCB = pub.Callbacks(),
+			doneCB = Callbacks(),
+			failCB = Callbacks(),
 			ret = {
 
 				// Return a unique promise object with limited functionality
 				promise: function () {
 					var promise = {};
 					var returnPromise = function (fn) {
-						fn();
-						return promise;
+						return function () {
+							fn.apply(this, arguments);
+							return promise;
+						};
 					};
 
 					promise.always = returnPromise(ret.always);
@@ -235,7 +245,7 @@
 
 
 	// Collection of callbacks which can be triggered once
-	pub.Callbacks = function () {
+	var Callbacks = function () {
 		var cbs = [],
 			args,
 			ret = {

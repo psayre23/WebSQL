@@ -1,27 +1,22 @@
 (function (pub) {
 
 
-	// Determine if argument is an array
-	pub.isArray = Array.isArray || function (arg) {
-		return !!(arg && arg.constructor === Array);
-	};
-
-
-
 
 	// Deferred results object
 	pub.Deferred = function () {
 		var curState,
-			doneCB = pub.Callbacks(),
-			failCB = pub.Callbacks(),
+			doneCB = Callbacks(),
+			failCB = Callbacks(),
 			ret = {
 
 				// Return a unique promise object with limited functionality
 				promise: function () {
 					var promise = {};
 					var returnPromise = function (fn) {
-						fn();
-						return promise;
+						return function () {
+							fn.apply(this, arguments);
+							return promise;
+						};
 					};
 
 					promise.always = returnPromise(ret.always);
@@ -124,7 +119,7 @@
 
 
 	// Collection of callbacks which can be triggered once
-	pub.Callbacks = function () {
+	var Callbacks = function () {
 		var cbs = [],
 			args,
 			ret = {

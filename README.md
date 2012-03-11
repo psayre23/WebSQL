@@ -48,16 +48,15 @@ This is what the WebSQL.query function is for:
 
 	var db = WebSQL('mydb');
 	db.query('SELECT * FROM products WHERE category_id = ?', [catID])
-		.fail(function (error) {
-			throw new Error(error.message);
+		.fail(function (ex, err) {
+			throw new Error(err.message);
 		})
 		.done(function (products) {
 			displayProducts(products);
 		});
 
 See how much simplier that is? This abstraction uses the Deferred/Promise system that a lot of non-blocking code is moving
-towards on the web. I intend to support jQuery's Deferred object with a custom module $.WebSQL() in the future which will
-use the $.Deferred() object instead of my own.
+towards on the web.
 
 Second, I want to be able to insert a whole bunch of data, but without having to do separate transactions. Query can take
 several SQL statements at once, and will return the last result set. On top of that, it will process each item in an array
@@ -74,8 +73,8 @@ data as if it was the last query. Here is all that combined:
 			[3, 5, 'Least Fancy Hat', '$5']
 		],
 		'SELECT * FROM products WHERE category_id = ?', [catID]
-	).fail(function (error) {
-		throw new Error(error.message);
+	).fail(function (tx, err) {
+		throw new Error(err.message);
 	}).done(function (products) {
 		displayProducts(products);
 	});
@@ -94,8 +93,8 @@ speed as joining an array of strings together to make a multiline string: slow, 
 				ON prod_cats.id = products.category_id
 		WHERE prod_cats.id = ?
 	*/}, [catID])
-		.fail(function (error) {
-			throw new Error(error.message);
+		.fail(function (tx, err) {
+			throw new Error(err.message);
 		}).done(function (products) {
 			displayProducts(products);
 		});
@@ -103,6 +102,19 @@ speed as joining an array of strings together to make a multiline string: slow, 
 What will happen is the query function will pull the content of the query from the commented section (from the first "/*!"
 to the last "*/". The "!" in the comment is intended to be a marker for minifiers that the comment is to remain intact.
 If this is a problem, you may need to just fall back to standard strings.
+
+jQuery Module
+-------------
+
+I have added the option to use this as a jQuery module...if you are into that sort of thing. The biggest advantage of
+using the jQuery module over the standard release is the use of jQuery's own Deferred object. You can also get access to
+the WebSQL object through $.WebSQL()
+
+	var db = $.WebSQL('mydb');
+	db.query('SELECT "Wow, jQuery, cool!" AS msg')
+		.done(function (rows) {
+			alert(rows[0].msg);
+		});
 
 Browser Support
 ---------------
@@ -115,6 +127,7 @@ If WebSQL API is supported, so is WebSQL Library. But since this is a deprecated
 * Opera Mobile 11.0+
 * Android 2.1+ (unless pulled by handset maker D: )
 
+jQuery module requires jQuery 1.5+.
 
 Why Support a Deprecated API?
 -----------------------------
@@ -124,3 +137,9 @@ Chrome, Safari, and Opera all support this API (http://caniuse.com/sql-storage).
 which is a lot friendlier to developers, but is not as well supported (http://caniuse.com/indexeddb) at the moment. The
 web community has come out against using LocalStorage for databases, and there is no clear alternitive for Safari and
 on mobile.
+
+Change Log
+----------
+
+* v0.1: 2012-03-10
+** Start project
