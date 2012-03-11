@@ -1,3 +1,20 @@
+tl;dr
+-----
+
+* jQuery: https://raw.github.com/psayre23/WebSQL/master/jquery.websql.min.js
+* Without: https://raw.github.com/psayre23/WebSQL/master/WebSQL.min.js
+
+Example code:
+
+	var db = WebSQL('mydb');
+	db.query('SELECT * FROM products')
+		.fail(function (tx, err) { alert(err.message); })
+		.done(function (products) { doSomething(products); });
+
+
+Why A WebSQL Wrapper?
+---------------------
+
 WebSQL is a simple wrapper for the now deprecated WebSQL Storage API from the W3C (http://www.w3.org/TR/webdatabase/).
 This is particularly useful for building large webapps which store and process data locally. I built this abstraction out
 of frustration with the API. A common method for quering a database is this:
