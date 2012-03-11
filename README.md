@@ -4,7 +4,7 @@ tl;dr
 * jQuery: https://raw.github.com/psayre23/WebSQL/master/jquery.websql.min.js
 * Without: https://raw.github.com/psayre23/WebSQL/master/WebSQL.min.js
 
-Example code:
+Example code, creating a table, index, inserting data, and selecting that data.
 
 	var db = WebSQL('mydb');
 	db.query(
