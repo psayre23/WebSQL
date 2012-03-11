@@ -120,12 +120,13 @@ Browser Support
 ---------------
 
 If WebSQL API is supported, so is WebSQL Library. But since this is a deprecated API, future browsers may pull support.
-*	Safari 3.1+
-*	Chrome 4.0+
-*	Opera 10.5 +
-*	iOS Safari 3.2+
-*	Opera Mobile 11.0+
-*	Android 2.1+ (unless pulled by handset maker D: )
+
+* Safari 3.1+
+* Chrome 4.0+
+* Opera 10.5 +
+* iOS Safari 3.2+
+* Opera Mobile 11.0+
+* Android 2.1+ (unless pulled by handset maker D: )
 
 jQuery module requires jQuery 1.5+.
 
