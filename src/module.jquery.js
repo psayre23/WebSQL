@@ -1,5 +1,5 @@
 (function ($, pub) {
 	pub.when = $.when;
 	pub.Deferred = $.Deferred;
-	$[pub.name] = pub;
+	$.WebSQL = pub;
 })(jQuery, WebSQL);

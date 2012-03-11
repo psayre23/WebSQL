@@ -4,7 +4,7 @@
 
 
 	// Public object
-	var pub = function WebSQL(name, ver, desc, size, cb) {
+	var pub = context.WebSQL = function (name, ver, desc, size, cb) {
 
 		// Open database
 		var
@@ -110,10 +110,6 @@
 		return ret;
 
 	};
-
-
-	// Public object is public
-	context[pub.name] = pub;
 
 
 	// Test if an argument is an array
