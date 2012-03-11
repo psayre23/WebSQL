@@ -142,5 +142,4 @@ on mobile.
 Change Log
 ----------
 
-* v0.1: 2012-03-10
-	> Start project
+* v0.1 (2012-03-10): Started project
