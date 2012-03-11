@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Todo Example</title>
+
+	<style>
+		body { margin: 0; padding: 0; text-align: center; }
+		#container { width: 400px; margin: 0 auto; text-align: left; }
+		h1 { text-shadow: 2px 2px 1px #ccc; }
+		.field input[type=text] { width: 325px; }
+		#todos { list-style: none; padding: 0; }
+		#todos li { margin-top: .4em; }
+	</style>
+
+	<script src="http://code.jquery.com/jquery-latest.js"></script>
+	<script src="https://raw.github.com/psayre23/WebSQL/master/jquery.websql.js"></script>
+
+	<script>
+	$(function () {
+
+		// Template for todo items
+		var tmpl = $('#tmpl-item').html();
+		var todoItemHTML = function (id, txt) {
+			return tmpl
+				.split('{id}').join(id)
+				.split('{txt}').join(txt);
+		};
+
+
+		// Connect to database
+		var db = $.WebSQL('todo');
+
+
+		db.query(
+			// Create table
+			'CREATE TABLE IF NOT EXISTS todos (id INTEGER PRIMARY KEY AUTOINCREMENT, isDone, txt)',
+
+			// Create index
+			'CREATE INDEX IF NOT EXISTS todos__done ON todos (isDone)',
+
+			// Select todos not done
+			function(){/*!
+				SELECT id, txt
+				FROM todos
+				WHERE isDone IS NULL
+				ORDER BY id DESC
+			*/}
+		)
+			.fail(function (tx, err) {
+				alert('An error occurred while loading the todos');
+				throw new Error(err.message);
+			})
+			.done(function (todos) {
+				// Create todos html
+				var items = [];
+				for(var i = 0; i < todos.length; i++) {
+					items[i] = todoItemHTML(todos[i].id, todos[i].txt);
+				}
+
+				// Create list from html
+				$('#todos').html(items.join(''));
+			});
+
+
+		// Remove todos when checked
+		$('#todos').on('change', ':checkbox', function () {
+			var $this = $(this),
+				todoID = $this.val();
+
+			db.query('UPDATE todos SET isDone = 1 WHERE id = ?', [todoID])
+				.fail(function (tx, err) {
+					alert('An error occured while marking your todo as complete.');
+					throw new Error(err.message);
+				})
+				.done(function () {
+					var $li = $this.closest('li');
+					$li.slideUp(function () {
+						$li.remove();
+					});
+				});
+		});
+
+
+		// Add todos to database and list
+		$('form').on('submit', function (e) {
+			var $input =$('input[name=todo]', this),
+				txt = $input.val();
+
+			e.preventDefault();
+
+			db.query('INSERT INTO todos (txt) VALUES (?)', [txt])
+				.fail(function (tx, err) {
+					alert('An error occurred while creating your todo.');
+					throw new Error(err.message);
+				})
+				.done(function (res) {
+					$(todoItemHTML(res.insertId, txt))
+						.hide()
+						.prependTo('#todos')
+						.slideDown();
+					$input.val('');
+				});
+		});
+
+
+		$('input[name=todo]').focus();
+	});
+	</script>
+</head>
+<body>
+<div id="container">
+	<h1>Todo List</h1>
+	<form>
+		<div class="field">
+			<input type="text" name="todo" placeholder="Enter Todo Item Here"/>
+			<input type="submit" value="Add"/>
+		</div>
+	</form>
+
+	<ul id="todos"></ul>
+	<script type="text/tmpl" id="tmpl-item">
+		<li>
+			<input type="checkbox" value="{id}"/>
+			<span>{txt}</span>
+		</li>
+	</script>
+</div>
+</body>
+</html>
