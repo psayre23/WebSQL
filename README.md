@@ -7,9 +7,21 @@ tl;dr
 Example code:
 
 	var db = WebSQL('mydb');
-	db.query('SELECT * FROM products')
-		.fail(function (tx, err) { alert(err.message); })
-		.done(function (products) { doSomething(products); });
+	db.query(
+		'CREATE TABLE products (id, category_id, name, price)',
+		'CREATE INDEX products__category_id ON products (category_id)',
+		'INSERT INTO products (id, category_id, name, price) VALUES (?,?,?,?)',
+		[
+			[1, 5, 'Fancy Hat', '$200'],
+			[2, 5, 'Less Fancy Hat', '$100'],
+			[3, 5, 'Least Fancy Hat', '$5']
+		],
+		'SELECT * FROM products WHERE category_id = ?', [catID]
+	).fail(function (tx, err) {
+		throw new Error(err.message);
+	}).done(function (products) {
+		displayProducts(products);
+	});
 
 
 Why A WebSQL Wrapper?
