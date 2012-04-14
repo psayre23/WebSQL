@@ -139,15 +139,7 @@
 					case 'json':
 					default:
 
-						ret.query(function () {/*!
-							SELECT *
-							FROM sqlite_master
-							WHERE tbl_name NOT REGEXP "^(__|sqlite_).*"
-							ORDER BY CASE type
-								WHEN "table" THEN 1
-								WHEN "index" THEN 2
-								ELSE 3 END
-						*/})
+						ret.query('SELECT * FROM sqlite_master WHERE tbl_name NOT REGEXP "^(__|sqlite_).*" ORDER BY CASE type WHEN "table" THEN 1 WHEN "index" THEN 2 ELSE 3 END')
 							.fail(dfDump.reject)
 							.done(function (rows) {
 								var tables = {}, dfs = [], row, i;

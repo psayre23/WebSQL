@@ -99,18 +99,23 @@
 		}
 
 		// Add done cases, collect results
-		for(i = 0; i < arguments.length; i++) {
-			(function (i) {
-				arguments[i].done(function () {
-					results[i] = arguments;
-					for(var j = 0; j < results.length; j++) {
-						if(results[j] === void null) break;
-					}
-					if(j === results.length) {
-						df.resolve.apply(df, results);
-					}
-				});
-			})(i);
+		if(arguments.length > 0) {
+			for(i = 0; i < arguments.length; i++) {
+				(function (i, arg) {
+					arg.done(function () {
+						results[i] = arguments;
+						for(var j = 0; j < results.length; j++) {
+							if(results[j] === void null) break;
+						}
+						if(j === results.length) {
+							df.resolve.apply(df, results);
+						}
+					});
+				})(i, arguments[i]);
+			}
+		}
+		else {
+			df.resolve.apply(df, results);
 		}
 
 

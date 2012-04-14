@@ -10,6 +10,13 @@
 	<script>
 	$(function () {
 
+		var failCB = function (text) {
+			return function () {
+				ok(false, text);
+				start();
+			};
+		};
+
 		test('browser support', function () {
 			ok(!!window.openDatabase, 'openDatabase exists');
 
@@ -43,10 +50,7 @@
 			equal(typeof promise.then, 'function', 'promise has then function');
 			equal(typeof promise.always, 'function', 'promise has always function');
 
-			var failPromise = promise.fail(function () {
-				ok(false, 'query failed');
-				start();
-			});
+			var failPromise = promise.fail(failCB('query failed'));
 			strictEqual(promise, failPromise, 'fail returned promise for chaining');
 
 			var donePromise = promise.done(function (res) {
@@ -108,15 +112,13 @@
 		});
 
 
-		asyncTest('multi query inserts', function () {
+		asyncTest('multi query inserts w/ ?', function () {
 			var db = WebSQL('test');
 			var promise = db.query(
 				'DROP TABLE IF EXISTS tests',
 				'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)',
 				'INSERT INTO tests (num) VALUES (?)',
-				[
-					[1], [2], [3]
-				],
+				[ [1], [2], [3] ],
 				'SELECT * FROM tests'
 			);
 
@@ -130,19 +132,48 @@
 		});
 
 
+		asyncTest('multi query inserts w/o ?', function () {
+			var db = WebSQL('test');
+			var promise = db.query(
+				'DROP TABLE IF EXISTS tests',
+				'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)',
+				'INSERT INTO tests (num)',
+				[ [4], [5] ],
+				'SELECT * FROM tests'
+			);
+
+			testPromise(promise);
+			promise.done(function (res) {
+				strictEqual(res.length, 2, 'result includes 2 rows');
+				equal(typeof res[1], 'object', 'results are objects');
+				strictEqual(res[0].num, 4, 'results match query');
+				start();
+			});
+		});
+
+
 		asyncTest('multiline query', function () {
 			var db = WebSQL('test');
+			db.query(
+				'DROP TABLE IF EXISTS tests',
+				'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)',
+				'INSERT INTO tests (num)',
+				[ [4], [5] ]
+			);
+
 			var promise = db.query(function(){/*!
 				SELECT *
 				FROM tests
 				WHERE num > 1
+				ORDER BY id
 			*/});
 
 			testPromise(promise);
 			promise.done(function (res) {
 				strictEqual(res.length, 2, 'result includes 2 rows');
 				equal(typeof res[1], 'object', 'results are objects');
-				strictEqual(res[0].num, 2, 'results match query');
+				strictEqual(res[0].id, 1, 'results (id) match query');
+				strictEqual(res[0].num, 4, 'results (num) match query');
 				start();
 			});
 		});
@@ -150,14 +181,67 @@
 
 		asyncTest('single insert', function () {
 			var db = WebSQL('test');
-			var promise = db.query('INSERT INTO tests (num) VALUES (?)', [4]);
+			db.query(
+				'DROP TABLE IF EXISTS tests',
+				'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)'
+			);
+
+			var promise = db.query('INSERT INTO tests (num)', [6]);
 
 			testPromise(promise);
 			promise.done(function (res) {
-				strictEqual(res.insertId, 4, 'Insert ID matched');
+				strictEqual(res.insertId, 1, 'Insert ID matched');
 				start();
 			});
 		});
+
+
+		asyncTest('multi insert', function () {
+			var db = WebSQL('test');
+			db.query(
+				'DROP TABLE IF EXISTS tests',
+				'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)'
+			);
+
+			var promise = db.query('INSERT INTO tests (num)', [ [7], [8] ]);
+
+			testPromise(promise);
+			promise.done(function (res) {
+				strictEqual(res.insertId, 2, 'Insert ID matched');
+				start();
+			});
+		});
+
+		asyncTest('dump json', function () {
+			var db = WebSQL('test');
+			var createTableSQL = 'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)';
+			var createIndexSQL = 'CREATE INDEX tests_num ON tests (num)';
+			var promise = db.query(
+				'DROP TABLE IF EXISTS tests',
+				createTableSQL,
+				createIndexSQL,
+				'INSERT INTO tests (num)',
+				[ [6], [7], [8], [9] ]
+			);
+
+
+			testPromise(promise);
+
+			promise.done(function () {
+				db.dump('json', true)
+					.fail(failCB('dump failed'))
+					.done(function (json) {
+						equal(typeof json, 'object', 'Results came back');
+						equal(typeof json['tests'], 'object', 'Tests table exists');
+						equal(json.tests.data.constructor, Array, 'Data is an array');
+						equal(json.tests.schema.table, createTableSQL, 'Create table SQL matches');
+						equal(json.tests.schema.indexes.length, 1, 'One index');
+						equal(json.tests.schema.indexes[0], createIndexSQL, 'Create index SQL matches');
+						start();
+					});
+			});
+
+		})
 
 	});
 	</script>

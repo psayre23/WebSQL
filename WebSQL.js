@@ -2,7 +2,6 @@
 (function (context) {
 
 
-
 	// Public object
 	var pub = context.WebSQL = function (name, ver, desc, size, cb) {
 
@@ -22,7 +21,7 @@
 				// Create transaction for all queries
 				ret.rawTx(function (tx) {
 					var dfSql = pub.Deferred(),
-						sql, args,
+						sql, args, parts,
 						i, iLen, j, jLen,
 						succ, error = dfSql.reject;
 
@@ -36,6 +35,12 @@
 							sql = sql.toString();
 							sql = sql.substr(sql.indexOf('/*!')+3);
 							sql = sql.substr(0, sql.lastIndexOf('*/'));
+						}
+
+						// Add ? for fields in insert
+						parts = /^\s*INSERT\s+INTO\s+\w+\s*\(([^\)]+)\)\s*$/i.exec(sql);
+						if(parts && parts[1]) {
+							sql += ' VALUES ('+(new Array(parts[1].split(',').length)).join('?,')+'?)';
 						}
 
 						// If query has args
@@ -104,6 +109,141 @@
 			// Runs a transaction manually on database
 			rawTx: function (fn) {
 				db.transaction(fn);
+			},
+
+
+			// Returns the names of the tables in the database
+			getTableNames: function () {
+				var df = $.Deferred();
+
+				ret.query('SELECT tbl_name FROM sqlite_master WHERE type = "table" AND tbl_name NOT REGEXP "^(__|sqlite_).*"')
+					.fail(df.reject)
+					.done(function (tables) {
+						var i, names = [];
+						for(i = 0; i < tables.length; i++) {
+							names[i] = tables[i].tbl_name;
+						}
+						df.resolve(names);
+					});
+
+				return df.promise();
+			},
+
+
+			// Dump the database in various formats
+			dump: function (type, getData) {
+				var dfDump = pub.Deferred();
+
+				getData = getData !== false; // Defaults to true
+
+				switch(type) {
+					case 'json':
+					default:
+
+						ret.query('SELECT * FROM sqlite_master WHERE tbl_name NOT REGEXP "^(__|sqlite_).*" ORDER BY CASE type WHEN "table" THEN 1 WHEN "index" THEN 2 ELSE 3 END')
+							.fail(dfDump.reject)
+							.done(function (rows) {
+								var tables = {}, dfs = [], row, i;
+
+								for(i = 0; row = rows[i]; i++) {
+									if(!row.sql) continue;
+									switch(row.type) {
+
+										// Create table sql
+										case 'table':
+											tables[row.tbl_name] = {
+												schema: {
+													table: row.sql,
+													indexes: []
+												}
+											};
+
+											// Pull data from table
+											if(getData) {
+												(function (name) {
+													var df = pub.Deferred();
+													ret.query('SELECT * FROM '+name)
+														.fail(df.reject)
+														.done(function (data) {
+															delete data.insertId;
+															tables[name].data = data;
+															df.resolve();
+														});
+													dfs.push(df);
+												})(row.tbl_name);
+											}
+											break;
+
+										// Create index sql
+										case 'index':
+											tables[row.tbl_name].schema.indexes.push(row.sql);
+											break;
+									}
+								}
+
+								// Wait for all data queries to come back before
+								pub.when.apply(pub, dfs)
+									.fail(dfDump.reject)
+									.done(function () {
+										dfDump.resolve(tables);
+									});
+							});
+						break;
+
+					case 'sql':
+						ret.dump('json', getData)
+							.fail(dfDump.reject)
+							.done(function (json) {
+								var sqls = [], table, row, i, field, fields, data, val;
+
+								for(var name in json) {
+									if(!hasOwn(name, json)) continue;
+									table = json[name];
+									sqls.push(table.schema.table);
+									sqls = sqls.concat(table.schema.indexes);
+									if(table.data && table.data.length > 0) {
+
+										// Get table fields
+										fields = [];
+										row = table.data[0];
+										for(field in row) {
+											if(!hasOwn(field, row)) continue;
+											fields.push(/\s/.test(field) ? '`'+field+'`' : field);
+										}
+										fields = fields.join(', ');
+
+										// Get data values
+										data = [];
+										for(i = 0; row = table.data[i]; i++) {
+											data[i] = [];
+											for(field in row) {
+												if(!hasOwn(field, row)) continue;
+												if(typeof row[field] === 'number') {
+													val = row[field];
+												}
+												else if(row[field] === null || row[field] === void null) {
+													val = 'NULL';
+												}
+												else {
+													val = '"'+row[field]+'"';
+												}
+												data[i].push(val);
+											}
+											data[i] = '('+data[i].join(', ')+')';
+										}
+
+										// Add query
+										data = data.join(',\n\t');
+										sqls.push('INSERT INTO '+name+' ('+fields+') VALUES\n\t'+data);
+									}
+								}
+
+								sqls = sqls.join(';\n')+';';
+								dfDump.resolve(sqls);
+							});
+				}
+
+				return dfDump.promise();
 			}
 		};
 
@@ -115,6 +255,11 @@
 	// Test if an argument is an array
 	var isArray = Array.isArray || function (arg) {
 		return !!(arg && arg.constructor === Array);
+	};
+
+
+	var hasOwn = function (key, obj) {
+		return Object.prototype.hasOwnProperty.call(obj, key);
 	};
 
 
@@ -221,18 +366,23 @@
 		}
 
 		// Add done cases, collect results
-		for(i = 0; i < arguments.length; i++) {
-			(function (i) {
-				arguments[i].done(function () {
-					results[i] = arguments;
-					for(var j = 0; j < results.length; j++) {
-						if(results[j] === void null) break;
-					}
-					if(j === results.length) {
-						df.resolve.apply(df, results);
-					}
-				});
-			})(i);
+		if(arguments.length > 0) {
+			for(i = 0; i < arguments.length; i++) {
+				(function (i, arg) {
+					arg.done(function () {
+						results[i] = arguments;
+						for(var j = 0; j < results.length; j++) {
+							if(results[j] === void null) break;
+						}
+						if(j === results.length) {
+							df.resolve.apply(df, results);
+						}
+					});
+				})(i, arguments[i]);
+			}
+		}
+		else {
+			df.resolve.apply(df, results);
 		}
 
 
