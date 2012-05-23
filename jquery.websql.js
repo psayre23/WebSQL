@@ -1,4 +1,4 @@
-/* WebSQL (v0.1) Paul Sayre */
+/* WebSQL (v0.2) Paul Sayre */
 (function (context) {
 	var VERSION = '0.2';
 
