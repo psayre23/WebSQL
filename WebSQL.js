@@ -1,6 +1,6 @@
 /* WebSQL (v0.1) Paul Sayre */
 (function (context) {
-
+	var VERSION = '0.2';
 
 	// Public object
 	var pub = context.WebSQL = function (name, ver, desc, size, cb) {
@@ -38,7 +38,7 @@
 						}
 
 						// Add ? for fields in insert
-						parts = /^\s*INSERT\s+INTO\s+\w+\s*\(([^\)]+)\)\s*$/i.exec(sql);
+						parts = /^\s*(?:INSERT|REPLACE)\s+INTO\s+\w+\s*\(([^\)]+)\)\s*$/i.exec(sql);
 						if(parts && parts[1]) {
 							sql += ' VALUES ('+(new Array(parts[1].split(',').length)).join('?,')+'?)';
 						}
@@ -251,6 +251,8 @@
 
 	};
 
+	pub.VERSION = VERSION;
+
 
 	// Test if an argument is an array
 	var isArray = Array.isArray || function (arg) {
@@ -263,7 +265,7 @@
 	};
 
 
-})(window);
+})(this);
 
 (function (pub) {
 

@@ -31,6 +31,7 @@
 			ok(WebSQL, 'global object exists');
 			equal(typeof WebSQL.Deferred, 'function', 'Deferred is function');
 			equal(typeof WebSQL.when, 'function', 'when is function');
+			equal(typeof WebSQL.VERSION, 'string', 'Version number is exposed');
 		});
 
 
@@ -196,6 +197,23 @@
 		});
 
 
+		asyncTest('single replace', function () {
+			var db = WebSQL('test');
+			db.query(
+				'DROP TABLE IF EXISTS tests',
+				'CREATE TABLE tests (id INTEGER PRIMARY KEY AUTOINCREMENT, num INTEGER)'
+			);
+
+			var promise = db.query('REPLACE INTO tests (num)', [6]);
+
+			testPromise(promise);
+			promise.done(function (res) {
+				strictEqual(res.insertId, 1, 'Insert ID matched');
+				start();
+			});
+		});
+
+
 		asyncTest('multi insert', function () {
 			var db = WebSQL('test');
 			db.query(
@@ -224,9 +242,7 @@
 				[ [6], [7], [8], [9] ]
 			);
 
-
 			testPromise(promise);
-
 			promise.done(function () {
 				db.dump('json', true)
 					.fail(failCB('dump failed'))
@@ -234,6 +250,7 @@
 						equal(typeof json, 'object', 'Results came back');
 						equal(typeof json['tests'], 'object', 'Tests table exists');
 						equal(json.tests.data.constructor, Array, 'Data is an array');
+						equal(json.tests.data[1].num, 7, 'Value exported correctly');
 						equal(json.tests.schema.table, createTableSQL, 'Create table SQL matches');
 						equal(json.tests.schema.indexes.length, 1, 'One index');
 						equal(json.tests.schema.indexes[0], createIndexSQL, 'Create index SQL matches');
