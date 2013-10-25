@@ -168,7 +168,13 @@ which is a lot friendlier to developers, but is not as well supported (http://ca
 web community has come out against using LocalStorage for databases, and there is no clear alternitive for Safari and
 on mobile.
 
+License
+-------
+MIT, as the LICENSE file shows. Have at.
+
 Change Log
 ----------
 
+* v0.2 (2013-10-25): Licensed under MIT
+* v0.2 (2012-05-22): Stability improvements
 * v0.1 (2012-03-10): Started project
