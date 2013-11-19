@@ -114,7 +114,7 @@
 
 			// Returns the names of the tables in the database
 			getTableNames: function () {
-				var df = $.Deferred();
+				var df = pub.Deferred();
 
 				ret.query('SELECT tbl_name FROM sqlite_master WHERE type = "table" AND tbl_name NOT REGEXP "^(__|sqlite_).*"')
 					.fail(df.reject)
